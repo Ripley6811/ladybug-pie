@@ -39,7 +39,7 @@
 """
 # EPYDOC RECOGNIZED
 __author__ = 'Ripley6811'
-__contact__ = 'tastethejava@hotmail.com'
+__contact__ = 'python at boun.cr'
 __copyright__ = 'none'
 __license__ = 'undecided'
 __date__ = 'Sat Dec 24 22:52:12 2011'
