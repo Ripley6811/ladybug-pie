@@ -17,13 +17,13 @@
 
 @AUTHOR: Ripley6811
 @ORGANIZATION: National Cheng Kung University, Department of Earth Sciences
-@CONTACT: tastethejava@hotmail.com
+@CONTACT: python at boun.cr
 """
 #===============================================================================
 # PROGRAM METADATA
 #===============================================================================
 __author__ = 'Ripley6811'
-__contact__ = 'tastethejava@hotmail.com'
+__contact__ = 'python at boun.cr'
 __copyright__ = ''
 __license__ = ''
 __date__ = 'Sat Aug 04 21:45:58 2012'
