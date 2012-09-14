@@ -22,11 +22,11 @@ images from stream.
 @ORGANIZATION: National Cheng Kung University, Department of Earth Sciences
 @COPYRIGHT: ...
 @LICENSE: ...
-@CONTACT: tastethejava@hotmail.com
+@CONTACT: python at boun.cr
 """
 ##### PROGRAM METADATA
 __author__ = 'Ripley6811'   #: A pseudonym.
-__contact__ = 'tastethejava@hotmail.com'
+__contact__ = 'python at boun.cr'
 __copyright__ = 'none'
 __license__ = 'undecided'
 __date__ = 'Sun Jan 29 16:33:32 2012'
