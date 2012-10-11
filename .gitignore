@@ -132,6 +132,8 @@ Desktop.ini
 #############
 
 *.py[co]
+*.pyc
+*.pkl
 
 # Packages
 *.egg
