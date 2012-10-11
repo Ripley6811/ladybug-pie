@@ -4,15 +4,16 @@ Author: Jay W Johnson
 
 Description:
 Python wrapper for Ladybug3 Spherical Camera API.
-
+***
 ### Ladybug (Package)
-#### interface.py
-#### API.py
+**interface.py**
+*API.py*
 * class LadybugAPI
-  Access to pythonified ladybug.dll methods
-  Memory management tasks are handled by the class
-  Data written by the method are returned by the method
-  instead of returning an error code
+
+    Access to pythonified ladybug.dll methods.
+    Memory management tasks are handled by the class.
+    Data written by the method are returned by the method.
+    instead of returning an error code.
 #### enums.py
 #### structures.py
     
