@@ -1,29 +1,33 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-(SUMMARY)
+Python wrapper class for ladybug.dll methods. 
 
-(DESCRIPTION)
+Import LadybugAPI as ladybug.
+Access methods with ladybug.method()
+    - For example, the dll method called:
+        ladybugGetStreamNumOfImages( LadybugStreamContext *context*, unsigned int *puiImages* )
+    is accessed through this module with:
+        ladybug.GetStreamNumOfImages()
 
-@SINCE: Tue May 08 09:17:43 2012
-@VERSION: 0.1
-@STATUS: Nascent
-@CHANGE: ...
-@TODO: ...
+The API is implemented as a class so that multiple videos can be separately initialized
+and managed. The 'ladybug context', 'ladybug stream context', and image buffer are managed
+by the class (hidden from the user). In other words, when reading about a method in the 
+Ladybug SDK Help, you can omit the context, readContext, and all empty pointers when
+calling the Python version. Methods return the expected data instead of an error value.
+Errors returned from API are changed to raised warnings and return strings.
 
-@REQUIRES: ...
-@PRECONDITION: ...
-@POSTCONDITION: ...
-
-@AUTHOR: Ripley6811
-@ORGANIZATION: National Cheng Kung University, Department of Earth Sciences
-@CONTACT: python at boun.cr
+:AUTHOR: Ripley6811
+:ORGANIZATION: National Cheng Kung University, Department of Earth Sciences
+:CONTACT: python@boun.cr
+:SINCE: Tue May 08 09:17:43 2012
+:TODO: ...
 """
 #===============================================================================
 # PROGRAM METADATA
 #===============================================================================
 __author__ = 'Ripley6811'
-__contact__ = 'python at boun.cr'
+__contact__ = 'python@boun.cr'
 __copyright__ = ''
 __license__ = ''
 __date__ = 'Tue May 08 09:17:43 2012'
@@ -35,19 +39,13 @@ __version__ = '0.1'
 from ctypes import CDLL, create_string_buffer, POINTER, c_char, c_int, byref, c_uint, c_double, string_at
 from PIL import Image
 import os
-from ladybug_codec import *
 from struct import unpack
+from structures import *
+from enums import *
 
 
-#===============================================================================
-#-----LADYBUG API WRAPPER-----
-# METHODS ADAPTED
-# The 'ladybug context', 'ladybug stream context', and image buffer are hidden
-# within this module (they do not require user interaction/management).
-# Errors returned from API are changed to raised warnings and return strings.
-#===============================================================================
 
-libc = CDLL('ladybug')
+c = CDLL('ladybug')
 
 class LadybugAPI:
     """Instantiate with a Ladybug3 stream file. This class maintains the local
@@ -91,7 +89,7 @@ class LadybugAPI:
 
         This method must be called before all other methods that require 'context'.
         '''
-        e = libc.ladybugCreateContext( byref(self.context) )
+        e = c.ladybugCreateContext( byref(self.context) )
         check(e)
 
 
@@ -99,7 +97,7 @@ class LadybugAPI:
         '''Frees memory associated with the LadybugContext.
 
         '''
-        e = libc.ladybugDestroyContext( self.context )
+        e = c.ladybugDestroyContext( self.context )
         check(e)
 
 
@@ -108,7 +106,7 @@ class LadybugAPI:
 
         This method must be called before all other methods that require 'readContext'.
         '''
-        e = libc.ladybugCreateStreamContext( self.readContext )
+        e = c.ladybugCreateStreamContext( self.readContext )
         check(e)
 
 
@@ -117,7 +115,7 @@ class LadybugAPI:
         '''Destroys a Ladybug stream context.
 
         '''
-        e = libc.ladybugDestroyStreamContext( self.readContext )
+        e = c.ladybugDestroyStreamContext( self.readContext )
         check(e)
 
 
@@ -127,7 +125,7 @@ class LadybugAPI:
         configuration file.
 
         '''
-        e = libc.ladybugGetStreamConfigFile(self.readContext,
+        e = c.ladybugGetStreamConfigFile(self.readContext,
                                             self.pszConfigFileName )
         check(e)
 
@@ -140,7 +138,7 @@ class LadybugAPI:
         '''
         pStreamHeaderInfo = create_string_buffer(3056)
 
-        e = libc.ladybugGetStreamHeader(self.readContext,
+        e = c.ladybugGetStreamHeader(self.readContext,
                                         pStreamHeaderInfo,
                                         None)
         check(e)
@@ -155,7 +153,7 @@ class LadybugAPI:
         :return: (int) Total number of frames in all associated stream files.
         '''
         totalFrames = c_int()
-        e = libc.ladybugGetStreamNumOfImages(self.readContext,
+        e = c.ladybugGetStreamNumOfImages(self.readContext,
                                              byref(totalFrames) )
         check(e)
         self.total_frames = totalFrames.value
@@ -167,7 +165,7 @@ class LadybugAPI:
         '''Sets the current reading position to the specified position in the stream.
 
         '''
-        e = libc.ladybugGoToImage( self.readContext, gotoframe )
+        e = c.ladybugGoToImage( self.readContext, gotoframe )
         check(e)
         self.next_frame = gotoframe
 
@@ -178,7 +176,7 @@ class LadybugAPI:
         the current reading position to the first image in the stream.
 
         '''
-        e = libc.ladybugInitializeStreamForReading(self.readContext,
+        e = c.ladybugInitializeStreamForReading(self.readContext,
                                                    ladybug_PGR_filename)
         check(e)
         self.next_frame = 0
@@ -191,7 +189,7 @@ class LadybugAPI:
 
         Loads ladybug image data into buffer and returns the image data as namedtuple.
         '''
-        e = libc.ladybugReadImageFromStream(self.readContext,
+        e = c.ladybugReadImageFromStream(self.readContext,
                                             self.pLadybugImage )  # WRITABLE BUFFER
         check(e)
 
@@ -212,7 +210,7 @@ class LadybugAPI:
             pszTxtFileName = create_string_buffer( os.path.join(self.dirname,
                                                                 'GPSsummary.txt') )
 
-        e = libc.ladybugWriteGPSSummaryDataToFile(self.readContext,
+        e = c.ladybugWriteGPSSummaryDataToFile(self.readContext,
                                                   pszTxtFileName,
                                                   LadybugGPSFileType )
         check(e)
@@ -223,7 +221,7 @@ class LadybugAPI:
         '''Sets the current color tile format.
         Selecting LadybugStippledFormat.LADYBUG_BGGR is recommended.
         '''
-        e = libc.ladybugSetColorTileFormat(self.context,
+        e = c.ladybugSetColorTileFormat(self.context,
                                            LadybugStippledFormat_selection)
         check(e)
 
@@ -233,7 +231,7 @@ class LadybugAPI:
         '''Sets the color processing method to use.
 
         '''
-        e = libc.ladybugSetColorProcessingMethod(self.context,
+        e = c.ladybugSetColorProcessingMethod(self.context,
                                                  color_processing_method )
         check(e)
 
@@ -245,7 +243,7 @@ class LadybugAPI:
         :PRECONDITION: Required calls before this method.
             - Call ladybugLoadConfig()
         '''
-        e = libc.ladybugSetRectifyResolution(self.context,
+        e = c.ladybugSetRectifyResolution(self.context,
                                 c_uint(uiDestCols),
                                 c_uint(uiDestRows),
                                 c_uint(self.ladybugImage.uiCols),
@@ -264,7 +262,7 @@ class LadybugAPI:
         '''
         pdRectifiedRow = create_string_buffer(8)
         pdRectifiedCol = create_string_buffer(8)
-        e = libc.ladybugRectifyPixel(self.context, uiCamera,
+        e = c.ladybugRectifyPixel(self.context, uiCamera,
                                      c_double(dDistortedRow),
                                      c_double(dDistortedCol),
                                      pdRectifiedRow, pdRectifiedCol )
@@ -283,7 +281,7 @@ class LadybugAPI:
         '''
         pdDistortedRow = create_string_buffer(8)
         pdDistortedCol = create_string_buffer(8)
-        e = libc.ladybugUnrectifyPixel(self.context, uiCamera,
+        e = c.ladybugUnrectifyPixel(self.context, uiCamera,
                                        c_double(dRectifiedRow),
                                        c_double(dRectifiedCol),
                                        pdDistortedRow, pdDistortedCol )
@@ -297,7 +295,7 @@ class LadybugAPI:
         same color image buffers, you do not have to set this to true every time.
 
         '''
-        e = libc.ladybugSetAlphaMasking(self.context, bMasking )
+        e = c.ladybugSetAlphaMasking(self.context, bMasking )
         check(e)
 
 
@@ -306,7 +304,7 @@ class LadybugAPI:
 
         '''
         currmethod = c_int()
-        e = libc.ladybugGetColorProcessingMethod(self.context, byref(currmethod) )
+        e = c.ladybugGetColorProcessingMethod(self.context, byref(currmethod) )
         check(e)
         return currmethod.value
 
@@ -318,7 +316,7 @@ class LadybugAPI:
         @PRECONDITION: Required calls before this method.
             ladybugSetColorProcessingMethod() (OPTIONAL)
         '''
-        e = libc.ladybugConvertToMultipleBGRU32(self.context,
+        e = c.ladybugConvertToMultipleBGRU32(self.context,
                                                 self.pLadybugImage,
                                                 self.arpBGRU32Images,
                                                 None )
@@ -330,12 +328,13 @@ class LadybugAPI:
                                          saveFileFormat=LADYBUG_FILEFORMAT_BMP):
         '''Converts a LadybugImage to a set of color-processed images.
 
-        @arg strfilenames: A list of six filenames to save each image in camera order.
-        @kwarg saveformat: Save image format. Default is BMP.
+        :PARAMETERS:
+            *filenames* --- A list of six filenames to save each image in camera order.
+            **saveformat** --- Save image format. Default is BMP.
         '''
         arpszFilenames = (POINTER(c_char) * 6)()
         arpszFilenames[:] = [create_string_buffer(each) for each in filenames]
-        e = libc.ladybugExtractLadybugImageToFilesBGRU32(self.context,
+        e = c.ladybugExtractLadybugImageToFilesBGRU32(self.context,
                                                          self.pLadybugImage,
                                                          arpszFilenames,
                                                          None,
@@ -362,7 +361,7 @@ class LadybugAPI:
 
         gpsData = create_string_buffer(buffer_size)
 
-        e = libc.ladybugGetGPSNMEADataFromImage(self.pLadybugImage,
+        e = c.ladybugGetGPSNMEADataFromImage(self.pLadybugImage,
                                                 NMEAsentenceID,
                                                 gpsData)
         check(e)
@@ -395,7 +394,7 @@ class LadybugAPI:
             self.GetStreamConfigFile()
 
         # RUN API METHOD
-        e = libc.ladybugLoadConfig(self.context, self.pszConfigFileName )
+        e = c.ladybugLoadConfig(self.context, self.pszConfigFileName )
         check(e)
         self.isConfigFileLoaded = True
 
@@ -416,7 +415,7 @@ class LadybugAPI:
             ladybugGetOpenGLTextureID()
 
         '''
-        e = libc.ladybugConfigureOutputImages(self.context,
+        e = c.ladybugConfigureOutputImages(self.context,
                                               LadybugOutputImage_SELECTION )
         check(e)
 
@@ -427,7 +426,7 @@ class LadybugAPI:
 
         @PRECONDITION:
         '''
-        e = libc.ladybugUpdateTextures(self.context,
+        e = c.ladybugUpdateTextures(self.context,
                                        6, # NUMBER OF CAMERAS
                                        self.arpBGRU32Images ) # POSSIBLE PROBLEM: REQUIRES BGRA
         check(e)
@@ -441,7 +440,7 @@ class LadybugAPI:
         @PRECONDITION:
             ladybugSetRectifyResolution()
         '''
-        e = libc.ladybugInitializeAlphaMasks(self.context,
+        e = c.ladybugInitializeAlphaMasks(self.context,
                                              self.ladybugImage.uiCols,
                                              self.ladybugImage.uiRows )
         check(e)
@@ -449,7 +448,7 @@ class LadybugAPI:
 
     def SetOffScreenImageSize(self, imageType=LADYBUG_PANORAMIC,
                               uiCols=2048, uiRows=1024 ):
-        e = libc.ladybugSetOffScreenImageSize(self.context,
+        e = c.ladybugSetOffScreenImageSize(self.context,
                                               imageType,
                                               uiCols,
                                               uiRows )
@@ -467,7 +466,7 @@ class LadybugAPI:
             ladybugConfigureOutputImages()
             ladybugSetOffScreenImageSize() (OPTIONAL)
         '''
-        e = libc.ladybugRenderOffScreenImage(self.context,
+        e = c.ladybugRenderOffScreenImage(self.context,
                                          LadybugOutputImage_selection,
                                          self.pLadybugProcessedImage ) # BUFFER
         check(e)
@@ -478,7 +477,7 @@ class LadybugAPI:
 
         '''
         pRenderingInfo = create_string_buffer(4964)
-        e = libc.ladybugGetImageRenderingInfo(self.context,
+        e = c.ladybugGetImageRenderingInfo(self.context,
                                               pRenderingInfo )
         check(e)
         return getLadybugImageRenderingInfo(pRenderingInfo )
@@ -488,7 +487,7 @@ class LadybugAPI:
         '''If not release with this method, they will be released when context
         is destroyed.
         '''
-        e = libc.ladybugReleaseOffScreenImage(self.context,
+        e = c.ladybugReleaseOffScreenImage(self.context,
                                              imageTypes )
         check(e)
 
@@ -499,7 +498,7 @@ class LadybugAPI:
 
         ardEulerZYX = create_string_buffer(48)
 
-        e = libc.ladybugGetCameraUnitExtrinsics(self.context, uiCamera,
+        e = c.ladybugGetCameraUnitExtrinsics(self.context, uiCamera,
                                                 ardEulerZYX ) # WRITABLE BUFFER
         check(e)
 
@@ -514,7 +513,7 @@ class LadybugAPI:
         '''
         pdFocalLength = create_string_buffer(8)
 
-        e = libc.ladybugGetCameraUnitFocalLength(self.context,
+        e = c.ladybugGetCameraUnitFocalLength(self.context,
                                                  uiCamera, pdFocalLength  )
         check(e)
 
@@ -529,7 +528,7 @@ class LadybugAPI:
         pdCenterX = create_string_buffer(8)
         pdCenterY = create_string_buffer(8)
 
-        e = libc.ladybugGetCameraUnitImageCenter(self.context, uiCamera,
+        e = c.ladybugGetCameraUnitImageCenter(self.context, uiCamera,
                                                  pdCenterX, pdCenterY )
 
         check(e)
@@ -547,7 +546,7 @@ class LadybugAPI:
             pLadybugProcessedImage buffer must be overwritten with data using the
             ladybugRenderOffScreenImage method
         '''
-        e = libc.ladybugSaveImage(self.context,
+        e = c.ladybugSaveImage(self.context,
                                   self.pLadybugProcessedImage,
                                   pszPath,
                                   LadybugSaveFileFormat )
@@ -559,14 +558,14 @@ class LadybugAPI:
 
         Value from 1 to 100. Default is 85
         '''
-        e = libc.ladybugSetImageSavingJpegQuality(self.context,
+        e = c.ladybugSetImageSavingJpegQuality(self.context,
                                                   iQuality)
         check(e)
 
 
 
     def StopStream(self):
-        e = libc.ladybugStopStream(self.readContext )
+        e = c.ladybugStopStream(self.readContext )
         check(e)
 
 
@@ -578,7 +577,7 @@ class LadybugAPI:
         uiSrcCols = c_uint(1616)
         uiSrcRows = c_uint(1232)
         pLadybugImage3d = create_string_buffer(1000)
-        e = libc.ladybugGet3dMap(self.context, uiCamera,
+        e = c.ladybugGet3dMap(self.context, uiCamera,
                                    uiGridCols,
                                    uiGridRows,
                                    uiSrcCols,
@@ -589,14 +588,19 @@ class LadybugAPI:
         return getLadybugImage3d(pLadybugImage3d)
 
 
-    def GetImageFromBuffer(self, cam ): # NOT FROM API
-        '''Retrieve a single camera's image from the image buffer.
+    def GetImageFromBuffer(self, cam ):
+        '''(Not from API) Retrieve a single camera's image from the image buffer.
+        
+        The ladybug class manages the image buffer. Call ladybug.ConvertToMultipleBGRU32
+        then retrieve a single camera's image with this method.
 
-        @PRECONDITION: Required calls before this method.
-            ladybugConvertToMultipleBGRU32()
+        :PRECONDITION:
+            **ladybugConvertToMultipleBGRU32** must be called first.
 
-        @arg cam: (int) The camera position that recorded the image.
-        @return: (Image) A PIL Image class 4-band image.
+        :PARAMETERS:
+            *cam* --- (int) The camera position that recorded the image.
+        
+        :RETURNS: (Image) A PIL Image class 4-band image.
         '''
         assert cam in range(6)
         LadybugImage = getLadybugImage( self.pLadybugImage )
@@ -613,16 +617,9 @@ class LadybugAPI:
 
 
 
-    def ErrorToString(self, err ):
-        errstr = string_at( libc.ladybugErrorToString( err ) )
-        return errstr
-
-
 def check(error, stopOnError=True):
     if error:
         if stopOnError:
-            raise Warning, string_at( libc.ladybugErrorToString( error ) )
+            raise Warning, string_at( c.ladybugErrorToString( error ) )
         else:
-            print 'Warning:', string_at( libc.ladybugErrorToString( error ) )
-
-
+            print 'Warning:', string_at( c.ladybugErrorToString( error ) )

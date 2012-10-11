@@ -3,56 +3,44 @@
 """
 Ladybug video stream interface.
 
-Contains all methods for managing a Ladybug3 *.pgr video stream. Retrieving
-images from stream.
-
-@SINCE: Sun Jan 29 16:33:32 2012
-@VERSION: 1.0
-@STATUS: In progress
-@CHANGE: ...
-@TODO: ...
+Contains all methods for simplifying the management of a Ladybug3 *.pgr video
+stream. Retrieving images from stream.
 
 
-@REQUIRES: ladybug.dll
-@PRECONDITION: ...
-@POSTCONDITION: ...
+:REQUIRES: ladybug.dll
+:PRECONDITION: ...
+:POSTCONDITION: ...
 
 
-@AUTHOR: Ripley6811
-@ORGANIZATION: National Cheng Kung University, Department of Earth Sciences
-@COPYRIGHT: ...
-@LICENSE: ...
-@CONTACT: python at boun.cr
+:AUTHOR: Ripley6811
+:ORGANIZATION: National Cheng Kung University, Department of Earth Sciences
+:COPYRIGHT: ...
+:LICENSE: ...
+:CONTACT: python@boun.cr
+:SINCE: Sun Jan 29 16:33:32 2012
+:VERSION: 1.0
+:STATUS: In progress
+:TODO: ...
 """
 ##### PROGRAM METADATA
-__author__ = 'Ripley6811'   #: A pseudonym.
-__contact__ = 'python at boun.cr'
+__author__ = 'Ripley6811'
+__contact__ = 'python@boun.cr'
 __copyright__ = 'none'
 __license__ = 'undecided'
 __date__ = 'Sun Jan 29 16:33:32 2012'
 __version__ = '.0'
 
 ##### IMPORT STATEMENTS
-#from numpy import *  # IMPORTS ndarray(), arange(), zeros(), ones()
-#from visual import *  # IMPORTS NumPy.*, SciPy.*, and Visual objects (sphere, box, etc.)
-#import matplotlib.pyplot as plt  # plt.plot(x,y)  plt.show()
-#from pylab import *  # IMPORTS NumPy.*, SciPy.*, and matplotlib.*
-#import os  # os.walk(basedir) FOR GETTING DIR STRUCTURE
-#import pickle  # pickle.load(fromfile)  pickle.dump(data, tofile)
-#from tkFileDialog import askopenfilename, askopenfile
 
-from PIL import Image, ImageChops
-from collections import namedtuple
 import os
 import time
-from ladybug_PyAPI import *
 from datetime import datetime
+from PIL import Image, ImageChops
+from collections import namedtuple
 import pexif
 from numpy import array, zeros
-
-#===============================================================================
-# ENUMERATIONS CARRIED OVER FROM C++ EXAMPLES
-#===============================================================================
+from API import LadybugAPI
+from enums import *  # LADYBUG_EDGE_SENSING, LADYBUG_RIGOROUS, etc.
 
 #===============================================================================
 #-----LADYBUG3STREAM CLASS AND METHODS-----
