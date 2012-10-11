@@ -8,6 +8,12 @@ Python wrapper for Ladybug3 Spherical Camera API.
 Only the methods that handle pre-recorded *.pgr files have been wrapped. Methods for controlling the camera and recording video have not been wrapped. The software that comes with the camera is good enough for recording video.
 
 ***
+**Ladybug_3D_mainGUI.py**
+* ladybug3D_app class
+
+    Main program that sets up the GUI and event handling.
+
+***
 ### Ladybug package
 **interface.py**
 * Ladybug3stream class
