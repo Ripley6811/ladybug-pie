@@ -5,6 +5,9 @@ Author: Jay W Johnson
 Description:
 Python wrapper for Ladybug3 Spherical Camera API.
 
+Required:
+Ladybug3 Spherical Camera API (ladybug.dll) installed which is included with the camera. Many modules and methods could be use with other cameras and projects.
+
 Only the methods that handle pre-recorded *.pgr files have been wrapped. Methods for controlling the camera and recording video have not been wrapped. The software that comes with the camera is good enough for recording video.
 
 The **latest version is in the "src" folder**. Program files in the root folder are an older version and will be removed later.
