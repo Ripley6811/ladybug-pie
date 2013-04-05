@@ -10,7 +10,7 @@ Ladybug3 Spherical Camera API (ladybug.dll) installed which is included with the
 
 Only the methods that handle pre-recorded *.pgr files have been wrapped. Methods for controlling the camera and recording video have not been wrapped. The software that comes with the camera is good enough for recording video.
 
-The **latest version is in the "src" folder**. Program files in the root folder are an older version and will be removed later.
+
 ***
 **Ladybug_3D_mainGUI.py**
 * `ladybug3D_app` class
@@ -40,8 +40,13 @@ SFM package
 
     Implements OpenCV's FeatureDetector_create, Descriptor_create, and flann_index methods to do feature detection and matching over a series of images.
     
-    TODO: Still needs some testing and clean-up and the addition of a bundle adjustment method.
+    TODO: Still needs some testing and clean-up.
 
+**online_SLAM**
+* `SLAM` class
 
+    Based on the SLAM algorithm introduced in Udacity's robot car course.
+    
+    Changed to make it easy to add positions and measurements. 'Online' SLAM is optional; the removal of old positions is done with a method call.
 
 
