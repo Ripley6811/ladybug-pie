@@ -92,6 +92,7 @@ def test_data2():
     # Add error to a few measurements
     measurements[3][0][2] += 0.001
     measurements[2][0][3] += 0.001
+    measurements[4][0][1] += 0.000001
 
 
     return motions, measurements
@@ -133,6 +134,7 @@ def main():
     slam.add_motion(motions[3])
     slam.add_measurement(measurements[4])
     slam.add_motion(motions[4])
+    slam.remove_pos(3)
     print slam.Omega[0]
     print slam.Xi[0]
     print slam.get_positions()

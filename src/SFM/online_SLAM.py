@@ -218,8 +218,27 @@ class SLAM:
         if number_to_remove >= self.nPos:
             return False
 
+        for xyz in range(self.dim):
+            n = number_to_remove
+            O = self.Omega[xyz]
+            X = self.Xi[xyz]
 
+            A = O[:n,n:]
+            B = O[:n,:n]
+            O_ = O[n:,n:]
+            C = X[:n,:]
+            X_ = X[n:,:]
 
+            print O.shape, X.shape
+            print A.shape, B.shape, O_.shape, C.shape, X_.shape
+            O = O_ - A.T * B.I * A
+            X = X_ - A.T * B.I * C
+            print O.shape, X.shape
+
+            self.Omega[xyz] = O
+            self.Xi[xyz] = X
+
+        self.nPos -= number_to_remove
 
 
 if __name__ == "__main__" and __package__ is None:
