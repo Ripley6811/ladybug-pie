@@ -9,9 +9,6 @@ is chosen by the initial point passed to the constructor.
 
 :REQUIRES: NumPy
 :TODO: 
-    - Change to manage ID's within this class. Map entered ID's to an index
-    position. Prevent errors from non-contiguous ID numbers.
-    - Add option to submit measurement confidence along with measurement.
 
 :AUTHOR: Ripley6811
 :ORGANIZATION: National Cheng Kung University, Department of Earth Sciences
@@ -79,7 +76,7 @@ class SLAM:
         '''
         self.nPts = 0 # number of correspondings points / landmarks
         self.dim = len(pos)  # number of dimensions to use (x,y,z)
-        self.landmarkID = [] # number of landmarks entered into matrix
+        self.landmarkID = [] # Map ID name to landmark index in matrix
         self.motion_confidence = motion_confidence
         self.measurement_confidence = measurement_confidence
         self.pts_history = [] # Store positions removed from matrix
@@ -100,7 +97,7 @@ class SLAM:
 
         
 
-    def add_measurement(self, pts):
+    def add_measurement(self, pts, measurement_confidence=None):
         '''Adds measurement data to most recent motion.
 
         Increases the size of the array if new point ID's are found.
@@ -110,10 +107,16 @@ class SLAM:
         
         :type pts: List of lists or other iterable type
         :arg  pts: List of measurements. Each like [ID, x[, y[, z]]].
+        :type measurement_confidence: float
+        :arg  measurement_confidence: Optional confidence score for input.
         '''
         self.updated = False
         P = self.nPos - 1
         LIDs = self.landmarkID
+        
+        
+        if not isinstance(measurement_confidence, float):
+            measurement_confidence = self.measurement_confidence
 
         for pt in pts:
             LID = pt[0]
@@ -148,16 +151,16 @@ class SLAM:
                 O = self.Omega[xyz]
                 X = self.Xi[xyz]
 
-                O[P,P] += 1.0 / self.measurement_confidence
-                O[iL,iL] += 1.0 / self.measurement_confidence
-                O[P,iL] -= 1.0 / self.measurement_confidence
-                O[iL,P] -= 1.0 / self.measurement_confidence
-                X[P,0] -= dist[xyz] / self.measurement_confidence
-                X[iL,0] += dist[xyz] / self.measurement_confidence
+                O[P,P] += 1.0 / measurement_confidence
+                O[iL,iL] += 1.0 / measurement_confidence
+                O[P,iL] -= 1.0 / measurement_confidence
+                O[iL,P] -= 1.0 / measurement_confidence
+                X[P,0] -= dist[xyz] / measurement_confidence
+                X[iL,0] += dist[xyz] / measurement_confidence
 
 
 
-    def add_motion(self, motion):
+    def add_motion(self, motion, motion_confidence=None):
         '''Add a motion since last position.
 
         Increases the size of matrix by one. New row and column inserted
@@ -165,9 +168,14 @@ class SLAM:
         
         :type motion: Iterable type containing floating point numbers
         :arg  motion: Movement in one or more dimensions.
+        :type motion_confidence: float
+        :arg  motion_confidence: Optional confidence score for input.
         '''
         assert len(motion) == self.dim
         self.updated = False
+        
+        if not isinstance(motion_confidence, float):
+            motion_confidence = self.motion_confidence
 
         N = self.nPos
 
@@ -189,12 +197,12 @@ class SLAM:
             X2[N+1:,0] = X[N:,0]
 
             # Insert new motion data
-            O2[N-1,N-1] += 1. / self.motion_confidence
-            O2[N  ,N  ] += 1. / self.motion_confidence
-            O2[N-1,N  ] -= 1. / self.motion_confidence
-            O2[N  ,N-1] -= 1. / self.motion_confidence
-            X2[N-1,0  ] -= motion[xyz] / self.motion_confidence
-            X2[N  ,0  ] += motion[xyz] / self.motion_confidence
+            O2[N-1,N-1] += 1. / motion_confidence
+            O2[N  ,N  ] += 1. / motion_confidence
+            O2[N-1,N  ] -= 1. / motion_confidence
+            O2[N  ,N-1] -= 1. / motion_confidence
+            X2[N-1,0  ] -= motion[xyz] / motion_confidence
+            X2[N  ,0  ] += motion[xyz] / motion_confidence
 
             # Copy new matrices over global arrays
             self.Omega[xyz]= O2
