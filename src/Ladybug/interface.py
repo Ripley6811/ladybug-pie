@@ -167,19 +167,27 @@ class Ladybug3stream:
         return self.ladybug.GetImageFromBuffer(cam).rotate(-90).convert('RGB')
 
 
-    def getGPSdata(self, *args):
-        '''Retrieve the GPS data for one frame or all frames.
+    def getGPSdata(self):
+        '''Retrieve the GPS data for one frame.
 
-        Default is to return the GPS data for the frame currently loaded into
-        image buffers. If 'ALL' is given as an argument, a complete listing
-        of GPS data for all frames will be returned.
-
-        @param args: Only acceptable param is the string 'ALL'.
+        Return the GPS data for the frame currently loaded into
+        image buffers.
         '''
-        pass
+        # Use GPRMC data (Time and coordinates)
+        gpsdata = self.ladybug.GetGPSNMEADataFromImage("GPRMC")._asdict()
+
+        # Add GPGGA data (HDOP and Number of satellites)
+        gpsdata.update( self.ladybug.GetGPSNMEADataFromImage("GPGGA")._asdict() )
+
+        # Add GPGSA data (PDOP and VDOP)
+        gpsdata.update( self.ladybug.GetGPSNMEADataFromImage("GPGSA")._asdict() )
+
+        return gpsdata
+
 
     def getNumberOfFrames(self):
         return self.ladybug.total_frames
+
 
     def getFrameInfo(self):
         frameInfo = namedtuple('frameInfo', 'frame seqid lat lon alt time microsec' )
@@ -190,7 +198,8 @@ class Ladybug3stream:
                          self.ladybug.ladybugImage.dGPSAltitude,
                          time.ctime(self.ladybug.ladybugImage.ulTimeSeconds),
                          self.ladybug.ladybugImage.ulTimeMicroSeconds ), \
-                         self.ladybug.GetGPSNMEADataFromImage()
+               self.ladybug.GetGPSNMEADataFromImage()
+
 
     def getVideoGPSlog(self):
         log = self.get_frame_gps_log()
@@ -198,6 +207,7 @@ class Ladybug3stream:
         self.ladybug.GoToImage( self.next_frame - 1 )
         self.ladybug.ReadImageFromStream()
         return log
+
 
     def save_panorama(self, savename='C:/', carfront=None, heading=None, addGPS=True ):
         '''
@@ -270,6 +280,7 @@ class Ladybug3stream:
         rx = 1231 - rx
         return rx, ry
 
+
     def unrectifyPixel(self, cam, xx, yy):
         '''Retrieves the rectified pixel position in an upright image.
         (API is sideways. This will handle the rotation.)
@@ -296,6 +307,7 @@ class Ladybug3stream:
         rx = 1231 - rx
         return rx, ry
 
+
     def getExtrinsics(self):
         edata = self.ladybug.GetCameraUnitExtrinsics( 3)
         print repr(edata)
@@ -312,7 +324,6 @@ class Ladybug3stream:
         self.ladybug.GoToImage( 0 )
         last_seq = -1
         for i in xrange( self.ladybug.total_frames ):
-            if i%100 == 0: print i,
             LImage = self.ladybug.ReadImageFromStream()
 
             skipped = 0
@@ -337,6 +348,24 @@ class Ladybug3stream:
                 dt = datetime.min
                 valid = False
 
+
+            try:
+                gpsdata2 = self.ladybug.GetGPSNMEADataFromImage("GPGGA")
+            except:
+                pass
+            try:
+                gpsdata3 = self.ladybug.GetGPSNMEADataFromImage("GPGSA")
+            except:
+                pass
+
+
+#            print LImage
+#            print 'GPRMC:', gpsdata
+#            print 'GPGGA:', gpsdata2
+#            print 'GPGGA: quality', gpsdata2.ucGGAGPSQuality,
+#            print 'HDOP', gpsdata2.dGGAHDOP,
+#            print 'SatsInUse', gpsdata2.ucGGANumOfSatsInUse
+#            print 'GPGSA:', gpsdata3._asdict()
             table[i] = (i, # FRAME NUMBER
                         LImage.ulSequenceId,
                         skipped,
@@ -347,9 +376,14 @@ class Ladybug3stream:
                         dt,
                         datetime.utcfromtimestamp(LImage.ulTimeSeconds).replace(microsecond=LImage.ulTimeMicroSeconds)
                         )
+            # PROGRESS FEEDBACK IN CONSOLE
+            if i%100 == 0:
+                print i,
+
         print table.nbytes
         print table.dtype
         return table
+
 
     def addGPStoJPEG(self, pszPath ):
         '''This method adds GPS data to a JPEG file. Use after ladybugSaveImage
