@@ -85,15 +85,15 @@ def test_data2():
     for each in motions:
         landmark_distances = []
         for l, landmark in enumerate(landmarks):
-#            landmark_distances.append([l,
-#                                       landmark[0]-curr_position[0],
-#                                       landmark[1]-curr_position[1],
-#                                       landmark[2]-curr_position[2]])
-            # landmarks not moving
             landmark_distances.append([l,
-                                       landmark[0],
-                                       landmark[1],
-                                       landmark[2]])
+                                       landmark[0]-curr_position[0],
+                                       landmark[1]-curr_position[1],
+                                       landmark[2]-curr_position[2]])
+            # landmarks not moving
+#            landmark_distances.append([l,
+#                                       landmark[0],
+#                                       landmark[1],
+#                                       landmark[2]])
         measurements.append(landmark_distances)
         curr_position = [curr_position[0] + each[0],
                          curr_position[1] + each[1],
@@ -106,9 +106,9 @@ def test_data2():
     del measurements[3][0]
     del measurements[4][0]
     # Add error to a few measurements
-    measurements[3][0][2] += 0.001
-    measurements[2][0][3] += 0.001
-    measurements[4][0][1] += 0.000001
+    measurements[3][0][2] += 0.01
+    measurements[2][0][3] += 0.01
+    measurements[4][0][1] += 0.0001
 
 
     return motions, measurements
@@ -120,7 +120,7 @@ def main():
     """Description of main()"""
     motions, measurements = test_data1()
 
-    slam = SLAM((50.,50.), 2.0, 2.0)
+    slam = SLAM((50.,50.), 1.0, 1.0)
     slam.add_measurement(measurements[0])
     slam.add_motion(motions[0])
     slam.add_measurement(measurements[1])
@@ -139,21 +139,26 @@ def main():
 
 
     motions, measurements = test_data2()
-    slam = SLAM((0.,0.,0.), 0.1, 0.1)
+    slam = SLAM((0.,0.,0.), 0.5, 0.1)
     slam.add_measurement(measurements[0])
-    slam.add_motion(motions[0])
+#    slam.add_motion(motions[0])
+    slam.add_motion([0.,0.,0.])
 #    slam.remove_pos()
     slam.add_measurement(measurements[1])
-    slam.add_motion(motions[1])
+#    slam.add_motion(motions[1])
+    slam.add_motion([0.,0.,0.])
 #    slam.remove_pos()
     slam.add_measurement(measurements[2])
-    slam.add_motion(motions[2])
+#    slam.add_motion(motions[2])
+    slam.add_motion([0.,0.,0.])
 #    slam.remove_pos()
     slam.add_measurement(measurements[3])
-    slam.add_motion(motions[3])
+#    slam.add_motion(motions[3])
+    slam.add_motion([10.,0.,0.])
 #    slam.remove_pos()
     slam.add_measurement(measurements[4])
-    slam.add_motion(motions[4])
+#    slam.add_motion(motions[4])
+    slam.add_motion([0.,0.,0.])
     slam.remove_pos()
 #    slam.remove_pos(3)
     print slam.Xi[0]
@@ -166,7 +171,9 @@ def main():
 #    print slam.Xi[0]
 #    print slam.Xi[1]
 #    print slam.Xi[2]
+    # Thin line is raw motion data
     plt.plot(*np.cumsum(np.array(motions)[:,:2],0).T)
+    # Thick line is SLAM processed motion data
     plt.plot(*cres[:,:2].T, linewidth=3)
 #    print np.cumsum(np.array(motions),0)
 #    print cres[1:,:2]

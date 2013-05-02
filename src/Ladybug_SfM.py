@@ -5,19 +5,18 @@
 
 (DESCRIPTION)
 
-@SINCE: Sat Aug 04 21:45:58 2012
-@VERSION: 0.1
-@STATUS: Nascent
-@CHANGE: ...
-@TODO: ...
+:REQUIRES: ...
+:TODO:
 
-@REQUIRES: ...
-@PRECONDITION: ...
-@POSTCONDITION: ...
+:SINCE: Sat Aug 04 21:45:58 2012
+:VERSION: 0.1
+:STATUS: Nascent
+:CHANGE: ...
 
-@AUTHOR: Ripley6811
-@ORGANIZATION: National Cheng Kung University, Department of Earth Sciences
-@CONTACT: python@boun.cr
+
+:AUTHOR: Ripley6811
+:ORGANIZATION: National Cheng Kung University, Department of Earth Sciences
+:CONTACT: python@boun.cr
 """
 #===============================================================================
 # PROGRAM METADATA
@@ -39,7 +38,7 @@ set_printoptions(suppress=True)
 import cv2
 
 import matplotlib.pyplot as plt
-from SFM import FeatureMatcher, Trifocal, test_vector_flow, GAP
+from SFM import FeatureMatcher, Trifocal, test_vector_flow, GAP, SLAM
 
 #===============================================================================
 # METHODS
@@ -47,6 +46,13 @@ from SFM import FeatureMatcher, Trifocal, test_vector_flow, GAP
 class Ladybug_SfM:
     def __init__(self, cam_intrinsic_mat=None, ladybug_cam_proj=None,
                  forward_cam=None, rectify_method=None):
+        '''
+        
+        :type forward_cam: int
+        :arg  forward_cam: Index number of the forward facing camera.
+        :type rectify_method: function
+        :arg  rectify_method: Method from Ladybug API to rectify a pixel location.
+        '''
         self.LPA = LadybugProjectionAssistant( cam_intrinsic_mat, ladybug_cam_proj)
         # SAVE NUMBER OF FORWARD FACING CAMERA
         self.forward_cam = forward_cam
@@ -69,9 +75,22 @@ class Ladybug_SfM:
         self.match_B = None
         self.prev_scale = 1.
 
+
+
     def __call__(self, seqid, keylist, matches=None):
-        '''Seqid is the sequence ID for the frame and keylist is a list of five
-        SIFT keys.'''
+        '''Add new key and match data from a new frame.
+        
+        After three frames are added, this method begins returning
+        transformation data.
+        
+        :type seqid: int
+        :arg  seqid: Sequence ID for one video frame.
+        :type keylist: list
+        :arg  keylist: List of five SIFT keys.
+        :type matches: list
+        :arg  matches: Previous set of relavent matches.
+        :returns: A tuple of latest two transformation matrices.
+        '''
         print 'Adding cam keys for seqid', seqid
         self.seqid.append( seqid )
 #        keylist = []
@@ -86,7 +105,20 @@ class Ladybug_SfM:
             return self.process_keys()
 
 
+
     def process_keys(self, calcfr=-1):
+        '''Calculate the two translations between three contiguous frames.
+        
+        :Steps:
+            #. Finds triple correspondences (3 frames) and normalizes points.
+            #. Estimates relative scaling based on sequence number (may have skipped).
+            #. Create trifocal tensor and extract the two translations.
+            #. 
+        
+        :type calcfr: int
+        :arg  calcfr: Index of 3rd inputed frame to calculate. 
+            Must be 2 or greater.
+        '''
         assert self.nframes >= 3, 'At least three frames are required for this process'
 
         if calcfr == -1:
@@ -114,6 +146,7 @@ class Ladybug_SfM:
         scale = ((self.seqid[calcfr]-self.seqid[calcfr-1])
                     /float(self.seqid[calcfr-1]-self.seqid[calcfr-2]))
         print 'scale', scale
+        
         # CALCULATE TRANSFORMATIONS
         camcol = [(1,0,0),(0,1,0),(0,0,1),(1,1,0),(1,0,1)]
         for cam, tset in enumerate(tri_match):
@@ -145,6 +178,7 @@ class Ladybug_SfM:
             epiHole = GAP.mask_pts_near_epipole(a, b, F=F)
             X = cv2.triangulatePoints(LPA.P(cam), LPA.Hdot(H_ab, cam)[:3], a[:2,epiHole], b[:2,epiHole])
             X /= X[3]
+            print 'points', X
             LPA.show_ladybug()
             LPA.show_points(X, radius=0.1, color=camcol[cam])
             # CALCULATE 2ND TRANSFORMATION FROM WORLD POINTS
@@ -197,121 +231,147 @@ class Ladybug_SfM:
 
         return self.Transformation[calcfr-1], self.Transformation[calcfr]
 
+        
+    
+    def process_keys_SLAM(self, calcfr=-1):
+        '''Uses SLAM to improve vehicle position.
+        
+        :XXX: Can use GPS coordinates for motion estimate or estimated translation
+            from corresponding points (or both?).
+            
+        :STEPS:
+            #. Collect interframe correspondences.
+                - Collect current frame points of interest.
+                - Store descriptors in dictionary with 1-up ID's
+                    - Cannot use list indices because it will need to allow point deletion.
+                - Consecutive frames match old descriptors and add new descriptors.
+            #. Estimate translation from corresponding points.
+                - Rotation is not used in SLAM. Re-calculate R|t after SLAM adjustment (BA).
+            #. Triangulate point distances from 1st frame and add distance estimates to SLAM.
+            #. Add 1st frame to 2nd frame motion estimate to SLAM.
+            #. Run bundle adjustment after # frames are added.
+            #. Remove old adjusted positions and # frames are added.
+            
+        '''
+        assert self.nframes > 1, 'Requires at least two frames to start triangulation.'
 
-    def process_keys_GA(self, calcfr=-1):
-        assert self.nframes >= 3, 'At least three frames are required for this process'
+        
+        
 
-        if calcfr == -1:
-            calcfr += self.nframes
-
-        # FIND THE TWO-MATCH AND TRI-MATCH SETS
-        keylist = self.keylist
-        tri_match = self.matches[-1]
-
-
-        # CREATE NORMALIZED TRI-SETS OF CORRESPONDENCE POINTS
-        LPA = self.LPA
-        for cam, camset in enumerate( tri_match ):
-            pointset = []
-            for i, m in enumerate( camset ):
-                if len(m) > 1:
-                    print cam, m
-                    pointset.append( LPA.normalize(cam,
-                                               self.keylist[calcfr-2+i][cam][:,0][m],
-                                               self.keylist[calcfr-2+i][cam][:,1][m]) )
-            tri_match[cam] = pointset
-        print 'tri_match', type(tri_match), len(tri_match)
-
-        # GET SCALING ESTIMATE FOR THIS TRANSLATION
-        scale = ((self.seqid[calcfr]-self.seqid[calcfr-1])
-                    /float(self.seqid[calcfr-1]-self.seqid[calcfr-2]))
-        print 'scale', scale
-        # CALCULATE TRANSFORMATIONS
-        camcol = [(1,0,0),(0,1,0),(0,0,1),(1,1,0),(1,0,1)]
-        for cam, tset in enumerate(tri_match):
-            print 'cam tset', cam
-            try:
-                a, b, c = tset
-            except:
-                print 'Error in tset split'
-                continue
-            print 'cam tset', cam
-            # TEST FOR REASONABLE FLOW
-            mask = test_vector_flow(a,b,c)
-            print 'len a', len(a[0])
-            a, b, c = a[:,mask], b[:,mask], c[:,mask]
-            print 'len masked a', len(a[0])
-
-
-            # TEST TRIPLETS BY VISUALIZATION AFTER MASK
-            if False:
-                for ak,bk,ck in zip(a.T,b.T,c.T):
-                    plt.plot(ak[0],ak[1], 'ro')
-                    plt.plot(bk[0],bk[1], 'go')
-                    plt.plot(ck[0],ck[1], 'bo')
-                    plt.plot([ak[0],bk[0]],[ak[1],bk[1]], 'm')
-                    plt.plot([bk[0],ck[0]],[bk[1],ck[1]], 'k')
-                plt.show()
-            if len(a[0]) < 10:
-                continue
-            # CALCULATE INITIAL TRANSFORMATION USING GA TO REFINE THE RESULT
-            H_ab = GAP.GA_refine_single_projection(LPA, cam, a, b, front_cam=self.forward_cam, popsize=40, iters=40)
-            # CALCULATE WORLD 3D POINTS FROM RESULT
-            F = GAP.E(GAP.encode5(H_ab))
-            epiHole = GAP.mask_pts_near_epipole(a, b, F=F)
-            X = cv2.triangulatePoints(LPA.P(cam), LPA.Hdot(H_ab, cam)[:3], a[:2,epiHole], b[:2,epiHole])
-            X /= X[3]
-            LPA.show_ladybug()
-            LPA.show_points(X, radius=0.1, color=camcol[cam])
-            # CALCULATE 2ND TRANSFORMATION FROM WORLD POINTS
-            H_ac = H_from_Xx(LPA, cam, X, c[:,epiHole].copy())
-
-            H_ab_gene = GAP.encode5sb( H_ab )[:6]
-            print 'Hab', H_ab_gene
-            print 'Hac', GAP.encode5sb( H_ac )[:6]
-
-            # MULTIPLY BY PREVIOUS SCALE
-            H_ab_gene[5] *= self.prev_scale
-
-            # CALCULATE THE B-C TRANSLATION
-            H_bc_gene = GAP.encode5sb( dot(H_ac,linalg.inv(H_ab)) )[:6]
-            print 'Hbc', H_bc_gene
-
-            # TEST IF DETECTED SCALING IS WITHIN REASON AND ADD TO LIST
-            print  H_bc_gene[5], scale, abs(H_bc_gene[5] - scale), (abs(H_bc_gene[5] - scale) < 0.25)
-#            raw_input('pause 2')
-            if (abs(H_bc_gene[5] - scale) < 0.25):
-                self.H_lists[calcfr-1].append( H_ab_gene )
-                self.H_lists[calcfr].append( H_bc_gene )
-                print 'len prev', len(self.H_lists[calcfr-1])
-                print 'len this', len(self.H_lists[calcfr])
-            else:
-                print 'Not adding:', H_ab_gene
-                print 'Not adding:', H_bc_gene
-        self.prev_scale = scale
-
-        # EVALUATE THE PROJECTION COLLECTIONS, RE-EVALUATE PREVIOUS
-        for each in [calcfr-1, calcfr]:
-            Hlist = array(self.H_lists[each])
-#            print Hlist
-            print '  PROCESSING H LIST'
-            print 'Number in stack', len(Hlist)
-            me = mean(Hlist,0)
-            st = std(Hlist,0)
-            print repr(me)
-            try:
-                above = Hlist > (me - st)
-                below = Hlist < (me + st)
-                res = sum(above & below, 1) == 6
-                self.Transformation[each] = mean(Hlist[res],0)
-                if isnan(self.Transformation[each][0]):
-                    raise ValueError, 'sodo'
-            except:
-                self.Transformation[each] = me
-            print repr(self.Transformation[each])
-            print
-
-        return self.Transformation[calcfr-1], self.Transformation[calcfr]
+#    def process_keys_GA(self, calcfr=-1):
+#        assert self.nframes >= 3, 'At least three frames are required for this process'
+#
+#        if calcfr == -1:
+#            calcfr += self.nframes
+#
+#        # FIND THE TWO-MATCH AND TRI-MATCH SETS
+#        keylist = self.keylist
+#        tri_match = self.matches[-1]
+#
+#
+#        # CREATE NORMALIZED TRI-SETS OF CORRESPONDENCE POINTS
+#        LPA = self.LPA
+#        for cam, camset in enumerate( tri_match ):
+#            pointset = []
+#            for i, m in enumerate( camset ):
+#                if len(m) > 1:
+#                    print cam, m
+#                    pointset.append( LPA.normalize(cam,
+#                                               self.keylist[calcfr-2+i][cam][:,0][m],
+#                                               self.keylist[calcfr-2+i][cam][:,1][m]) )
+#            tri_match[cam] = pointset
+#        print 'tri_match', type(tri_match), len(tri_match)
+#
+#        # GET SCALING ESTIMATE FOR THIS TRANSLATION
+#        scale = ((self.seqid[calcfr]-self.seqid[calcfr-1])
+#                    /float(self.seqid[calcfr-1]-self.seqid[calcfr-2]))
+#        print 'scale', scale
+#        # CALCULATE TRANSFORMATIONS
+#        camcol = [(1,0,0),(0,1,0),(0,0,1),(1,1,0),(1,0,1)]
+#        for cam, tset in enumerate(tri_match):
+#            print 'cam tset', cam
+#            try:
+#                a, b, c = tset
+#            except:
+#                print 'Error in tset split'
+#                continue
+#            print 'cam tset', cam
+#            # TEST FOR REASONABLE FLOW
+#            mask = test_vector_flow(a,b,c)
+#            print 'len a', len(a[0])
+#            a, b, c = a[:,mask], b[:,mask], c[:,mask]
+#            print 'len masked a', len(a[0])
+#
+#
+#            # TEST TRIPLETS BY VISUALIZATION AFTER MASK
+#            if False:
+#                for ak,bk,ck in zip(a.T,b.T,c.T):
+#                    plt.plot(ak[0],ak[1], 'ro')
+#                    plt.plot(bk[0],bk[1], 'go')
+#                    plt.plot(ck[0],ck[1], 'bo')
+#                    plt.plot([ak[0],bk[0]],[ak[1],bk[1]], 'm')
+#                    plt.plot([bk[0],ck[0]],[bk[1],ck[1]], 'k')
+#                plt.show()
+#            if len(a[0]) < 10:
+#                continue
+#            # CALCULATE INITIAL TRANSFORMATION USING GA TO REFINE THE RESULT
+#            H_ab = GAP.GA_refine_single_projection(LPA, cam, a, b, front_cam=self.forward_cam, popsize=40, iters=40)
+#            # CALCULATE WORLD 3D POINTS FROM RESULT
+#            F = GAP.E(GAP.encode5(H_ab))
+#            epiHole = GAP.mask_pts_near_epipole(a, b, F=F)
+#            X = cv2.triangulatePoints(LPA.P(cam), LPA.Hdot(H_ab, cam)[:3], a[:2,epiHole], b[:2,epiHole])
+#            X /= X[3]
+##            LPA.show_ladybug()
+##            LPA.show_points(X, radius=0.1, color=camcol[cam])
+#            # CALCULATE 2ND TRANSFORMATION FROM WORLD POINTS
+#            H_ac = H_from_Xx(LPA, cam, X, c[:,epiHole].copy())
+#
+#            H_ab_gene = GAP.encode5sb( H_ab )[:6]
+#            print 'Hab', H_ab_gene
+#            print 'Hac', GAP.encode5sb( H_ac )[:6]
+#
+#            # MULTIPLY BY PREVIOUS SCALE
+#            H_ab_gene[5] *= self.prev_scale
+#
+#            # CALCULATE THE B-C TRANSLATION
+#            H_bc_gene = GAP.encode5sb( dot(H_ac,linalg.inv(H_ab)) )[:6]
+#            print 'Hbc', H_bc_gene
+#
+#            # TEST IF DETECTED SCALING IS WITHIN REASON AND ADD TO LIST
+#            print  H_bc_gene[5], scale, abs(H_bc_gene[5] - scale), (abs(H_bc_gene[5] - scale) < 0.25)
+##            raw_input('pause 2')
+#            if (abs(H_bc_gene[5] - scale) < 0.25):
+#                self.H_lists[calcfr-1].append( H_ab_gene )
+#                self.H_lists[calcfr].append( H_bc_gene )
+#                print 'len prev', len(self.H_lists[calcfr-1])
+#                print 'len this', len(self.H_lists[calcfr])
+#            else:
+#                print 'Not adding:', H_ab_gene
+#                print 'Not adding:', H_bc_gene
+#        self.prev_scale = scale
+#
+#        # EVALUATE THE PROJECTION COLLECTIONS, RE-EVALUATE PREVIOUS
+#        for each in [calcfr-1, calcfr]:
+#            Hlist = array(self.H_lists[each])
+##            print Hlist
+#            print '  PROCESSING H LIST'
+#            print 'Number in stack', len(Hlist)
+#            me = mean(Hlist,0)
+#            st = std(Hlist,0)
+#            print repr(me)
+#            try:
+#                above = Hlist > (me - st)
+#                below = Hlist < (me + st)
+#                res = sum(above & below, 1) == 6
+#                self.Transformation[each] = mean(Hlist[res],0)
+#                if isnan(self.Transformation[each][0]):
+#                    raise ValueError, 'sodo'
+#            except:
+#                self.Transformation[each] = me
+#            print repr(self.Transformation[each])
+#            print
+#
+#        return self.Transformation[calcfr-1], self.Transformation[calcfr]
 
 
 
@@ -338,10 +398,14 @@ class LadybugProjectionAssistant:
             if len(cam_intrinsic_mat) in [5,6]:
                 self.K = cam_intrinsic_mat
 
+
+
         self.LP = self.getDefaultCPMs()
         if ladybug_cam_proj:
             if len(ladybug_cam_proj) in [5,6]:
                 self.LP = ladybug_cam_proj
+
+
 
     def __call__(self, cam_number, power=1):
         '''Get 4x4 ladybug projection.'''
@@ -349,15 +413,21 @@ class LadybugProjectionAssistant:
             return (mat(self.LP[cam_number])**power).A
         return self.LP[cam_number]
 
+
+
     def H(self, cam_number, power=1):
         '''Get 4x4 ladybug projection.'''
         if power != 1:
             return (mat(self.LP[cam_number])**power).A
         return self.LP[cam_number]
 
+
+
     def I(self, cam_number):
         '''Get inverse of H'''
         return linalg.inv(self.LP[cam_number])
+
+
 
     def P(self, cam_number, power=1):
         '''Get 3x4 camera projection.'''
@@ -365,11 +435,17 @@ class LadybugProjectionAssistant:
             return (mat(self.LP[cam_number]).I**power).A[:3]
         return linalg.inv(self.LP[cam_number])[:3]
 
+
+
     def PI(self, cam_number):
         return self.P(cam_number, -1)
 
+
+
     def getP(self, H):
         return linalg.inv( H )[:3]
+
+
 
     def dot(self, *args):
         '''Dot product of N matrices in the order given.
@@ -389,6 +465,8 @@ class LadybugProjectionAssistant:
                 H = dot(H, args[i])
         return H
 
+
+
     def Idot(self, *args):
         '''Get the inverse of a dot product.
 
@@ -396,21 +474,23 @@ class LadybugProjectionAssistant:
         return linalg.inv(self.dot( *args ))
 
 
+
     def Pdot(self, *args):
         '''Composes a list or series of H translations and returns a camera
         projection P. Last argument is a camera number.
 
-        @args: List and integer or series of matrices and one integer.
+        :args: List and integer or series of matrices and one integer.
             Example: Pdot( [A,B,C,D], 3 ) or Pdot( A, B, C, D, 3 )
         Inversion of the result from dot().'''
         return linalg.inv(self.Hdot( *args ))[:3]
+
 
 
     def Hdot(self, *args):
         '''Composes a list or series of H translations with a Ladybug
         projection. Last argument is a camera number.
 
-        @args: List and integer or series of matrices and one integer.
+        :args: List and integer or series of matrices and one integer.
             Example: Pdot( [A,B,C,D], 3 ) or Pdot( A, B, C, D, 3 )
         Inversion of the result from dot().'''
         if len(args) == 2:
@@ -418,6 +498,8 @@ class LadybugProjectionAssistant:
                 return self.Idot( (self.I(args[1]),) + args[0] )[:3]
         args = (self.I(args[-1]),) + args[:-1]
         return self.dot( *args )
+
+
 
     def H_C2L(self, cam_number, Hcam):
         '''Convert translation of a camera to a translation of the Ladybug.
@@ -432,6 +514,8 @@ class LadybugProjectionAssistant:
             Hcam = append(Hcam, array([[0,0,0,1]]), 0 )
         return self.dot( self.LP[cam1], Hcam, self.I(cam2) )
 
+
+
     def H_L2C(self, cam_number, Hlady):
         '''Convert translation of the Ladybug to a translation of a camera.
 
@@ -445,6 +529,8 @@ class LadybugProjectionAssistant:
             Hlady = append(Hlady, array([[0,0,0,1]]), 0 )
         return self.dot( self.I(cam1), Hlady, self.LP[cam2] )
 
+
+
     def normalize(self, cam_number, x, y=None):
         '''Convert a 2xN array or two N arrays (x and y) of image coordinates
         to normalized (by camera matrix) homogeneous coordinates.'''
@@ -454,10 +540,13 @@ class LadybugProjectionAssistant:
         return dot(linalg.inv(self.K[cam_number]), xy1)
     norm = normalize
 
+
+
     def image_coord(self, cam_number, xy1):
         '''Convert a 3xN array of homogeneous normalized coordinates to image
         coordinates a camera.'''
         return dot(self.K[cam_number], xy1)[:2]
+
 
 
     def show_ladybug(self, H=None):
@@ -490,9 +579,13 @@ class LadybugProjectionAssistant:
                       axis=dot(R, r_[0,0,0.02]).flatten(),
                       color=(0,0,1), opacity=0.5 )
 
+
+
     def show_points(self, X3D, radius=0.05, color=(1,1,1)):
         for X in X3D.T:
             vis.sphere(pos=X[:3], radius=radius, color=color)
+
+
 
     def test_triangulation_gdpts(self, P, x0, x1, cam=None ):
         # TRIANGULATE POINTS
@@ -513,6 +606,7 @@ class LadybugProjectionAssistant:
 
         infront = x0 & x1
         return (100*sum(infront))/len(infront), sum(infront), len(infront)
+
 
 
     def getDefaultCIMs(self):
@@ -536,6 +630,7 @@ class LadybugProjectionAssistant:
                  array([[ 408.35256,    0.      ,  620.6128],
                           [   0.      ,  408.351888,  816.28296],
                           [   0.      ,    0.      ,    1.      ]]) ]
+
 
 
     def getDefaultCPMs(self, visualize=False):
@@ -574,6 +669,7 @@ class LadybugProjectionAssistant:
         camPs = [eulerZYX_to_euclidean(each) for each in cams]
 
         return camPs
+
 
 
 def I(M):

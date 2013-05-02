@@ -275,7 +275,7 @@ class LadybugAPI:
         '''Maps a rectified pixel location to its corresponding point in the
         distorted (raw) image.
 
-        @PRECONDITION: Required calls before this method.
+        :PRECONDITION: Required calls before this method.
             ladybugLoadConfig()
             ladybugSetRectifyResolution()
         '''
@@ -313,7 +313,7 @@ class LadybugAPI:
     def ConvertToMultipleBGRU32(self):
         '''Parses the 6 images in a LadybugImage into 6 BGRU32 buffers.
 
-        @PRECONDITION: Required calls before this method.
+        :PRECONDITION: Required calls before this method.
             ladybugSetColorProcessingMethod() (OPTIONAL)
         '''
         e = c.ladybugConvertToMultipleBGRU32(self.context,
@@ -383,7 +383,7 @@ class LadybugAPI:
         This function must be called once before any calls involving 3D mapping and
         rectification are performed. An error occurs if called a second time.
 
-        @PRECONDITION: Required calls before this method.
+        :PRECONDITION: Required calls before this method.
             ladybugGetStreamConfigFile() (IF CONFIG FILE DOES NOT EXIST)
         '''
         # CHECK IF ALREADY LOADED. ONLY LOAD ONCE.
@@ -406,7 +406,7 @@ class LadybugAPI:
 
         Can be a combination of types in enum LadybugOutputImage
 
-        @PRECONDITION: Required calls before this method.
+        :PRECONDITION: Required calls before this method.
             ladybugLoadConfig()
         Call this function before:
             ladybugSetDisplayWindow()
@@ -424,7 +424,7 @@ class LadybugAPI:
     def UpdateTextures(self):
         '''Moves images from buffers to the graphics card for rendering.
 
-        @PRECONDITION:
+        :PRECONDITION:
         '''
         e = c.ladybugUpdateTextures(self.context,
                                        6, # NUMBER OF CAMERAS
@@ -437,7 +437,7 @@ class LadybugAPI:
         '''Moves images from buffers to the graphics card for rendering.
         Assumes image size of 1616x1232.
 
-        @PRECONDITION:
+        :PRECONDITION:
             ladybugSetRectifyResolution()
         '''
         e = c.ladybugInitializeAlphaMasks(self.context,
@@ -462,7 +462,7 @@ class LadybugAPI:
         The size of the image will be defined by the default value or can
         be set by ladybugSetOffScreenImageSize() beforehand.
 
-        @PRECONDITION: Required calls before this method.
+        :PRECONDITION: Required calls before this method.
             ladybugConfigureOutputImages()
             ladybugSetOffScreenImageSize() (OPTIONAL)
         '''
@@ -542,7 +542,7 @@ class LadybugAPI:
         '''Saves off screen image to file.
         Use LadybugSaveFileFormat.LADYBUG_FILEFORMAT_JPG as a default
 
-        @PRECONDITION:
+        :PRECONDITION:
             pLadybugProcessedImage buffer must be overwritten with data using the
             ladybugRenderOffScreenImage method
         '''

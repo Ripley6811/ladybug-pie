@@ -3,15 +3,15 @@
 """
 Created on Tue Dec 27 13:37:38 2011
 
-@AUTHOR: Ripley6811
+:AUTHOR: Ripley6811
 
-@PROGRAM: Ladybug3 SfM GUI
-@VERSION: 1.5
+:PROGRAM: Ladybug3 SfM GUI
+:VERSION: 1.5
         - Changed GUI organization
         - Switch to using OpenCV feature detection and matching
         - Switched to using a class called PolygonObj for managing all polygons
 
-@ABSTRACT:
+:ABSTRACT:
 
 :TODO:
     - Create a scroll_list of objects
@@ -640,7 +640,7 @@ class ladybug3D_app(Tkinter.Tk):
 #        fm = [FeatureMatcher('Pyramid','SIFT', roi=crop[i]) for i in range(5)]
         fm = [FeatureMatcher('Grid','SURF', roi=crop[i]) for i in range(5)]
 
-        rangestring = askstring('Calculate Motion', 'Enter Range')
+        rangestring = askstring('Calculate Motion', 'Enter Range (separated with a space)')
         rangestring = rangestring.split()
         if len(rangestring) == 1:
             rangestring = rangestring[0].split('-,.:')
@@ -651,20 +651,21 @@ class ladybug3D_app(Tkinter.Tk):
 
         translation = self.settings['translation']
 
-        arr_len = self.PGRstream.getNumberOfFrames()
+#        arr_len = self.PGRstream.getNumberOfFrames()
+
         # y-AXIS SEARCH SPACE LOWER BOUND (ABOVE CAR)
         yLB = self.settings.get('car_boundary') if self.settings.get('car_boundary') else None
         # x-AXIS CENTERED WITH FRONT OF VEHICLE (camera, pixel)
         xC = self.settings.get('im_forward') if self.settings.get('im_forward') else None
         if not yLB or not xC:
             return
-        xpixel = int(xC[1])
+#        xpixel = int(xC[1])
 
 
         SfM = Ladybug_SfM(forward_cam=xC[0])
 
         # LOAD FIRST FRAME
-        prev_im = self.PGRstream.image(0).convert('L')
+#        prev_im = self.PGRstream.image(0).convert('L')
 
 
         rectifyPixel = self.PGRstream.rectifyPixel
@@ -685,6 +686,8 @@ class ladybug3D_app(Tkinter.Tk):
                 image = self.PGRstream.image( i ).convert('L')
                 # GET KEYS AND MATCHES FROM IMAGE
                 image_key, image_match = fm[i].add( asarray(image) )
+#                print 'image_key', image_key
+#                print 'image_match', image_match
                 # RECTIFY POSITIONS USING LADYBUG API
                 XY = rectifyPixel( i, image_key[:,0], image_key[:,1] )
                 image_key[:,0], image_key[:,1] = XY

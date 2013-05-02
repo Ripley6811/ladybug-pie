@@ -191,7 +191,26 @@ def dist(x0, x1, P=None, F=None):
 
     return d0+d1
 
+    
+    
 def mask_pts_near_epipole(pts1, pts2, P=None, cutoff=0.1, F=None):
+    '''Get array of indices for points that are away from epipole.
+    
+    Epipole points cannot be triangulated and must be excluded from
+    array. The method returns an array of acceptable indices.
+    
+    :type pts1: list
+    :arg  pts1: List of corresponding image points from image one.
+    :type pts2: list
+    :arg  pts2: List of corresponding image points from image two.
+    :type P: 3x4 array
+    :arg  P: Projection
+    :type cutoff: float
+    :arg  cutoff: Cut off distance for unacceptable points.
+    :type F: 3x3 array
+    :arg  F: Fundamental matrix
+    :returns: Array of acceptable indices in point list.
+    '''
     if F == None:
         F = E(P)
     epipole = cv2.SVDecomp(F.T)[2][-1]
@@ -213,7 +232,15 @@ def mask_pts_near_epipole(pts1, pts2, P=None, cutoff=0.1, F=None):
 def test_heading(expected_heading, test_heading):
     '''Test heading must be in Ladybug coordinate system.
 
-    Move to a Ladybug module?'''
+    :TODO: Move to a Ladybug module?
+    
+    :type expected_heading: camera index (int) or degrees (float)
+    :arg  expected_heading: The direction expected in movement.
+    :type test_heading: float
+    :arg  test_heading: Detected heading to test.
+    :returns: True if tested heading is within 32 degrees of
+        expected heading, otherwise returns False.
+    '''
     # IF HEADING IS AN INTEGER, THEN ASSUME IT IS CAMERA NUMBER AND CONVERT TO RADIANS
     if isinstance(expected_heading, int):
         expected_heading = 2*pi - (2*pi/5.) * expected_heading
@@ -224,8 +251,14 @@ def test_heading(expected_heading, test_heading):
     if headingdiff < pi/5.: # 72 degree span
         return True
     return False
+    
+    
 
 def mean_bearing(b1, b2):
+    '''Returns the average of two bearings.
+    
+    Takes into account the 360 to 0 jump.
+    '''
     bs = r_[b1,b2]
     angle = max(bs - min(bs))
     if angle < pi:
@@ -234,6 +267,7 @@ def mean_bearing(b1, b2):
         return ((2*pi + angle)/2. + min(bs))%(2*pi)
 
 
+        
 def test_triangulation_gdpts(P, x0, x1):
     H = linalg.inv(decode5(P))
 
@@ -248,6 +282,8 @@ def test_triangulation_gdpts(P, x0, x1):
 
     return (100*sum(infront))/len(infront), sum(infront), len(infront)
 
+    
+    
 def test_vector_flow(a,b,c,max_angle=pi/32):
     '''Tests a contiguous set of matches. The difference in angle between a-b
     and b-c must be less than 'max_angle'. Default is difference of 36 degrees.
@@ -281,6 +317,8 @@ def test_vector_flow(a,b,c,max_angle=pi/32):
 #    print 'good vectors', sum(gdvecs), '(', len(gdvecs), ')'
 
     return gdvecs & gdscale
+    
+    
 
 def mutate(pop, sigma=pi/32.):
     '''Population is an N by 6 array of encoded translations.'''
@@ -288,6 +326,8 @@ def mutate(pop, sigma=pi/32.):
     pop.T[i] = random.gauss(pop.T[i], sigma)
 #    pop[:5] = random.gauss(pop[:5], sigma)
     return pop
+    
+    
 
 def mutate2(pop, sigma=pi/180.):
     for i in random.sample(arange(5*3)%5,3):
@@ -295,6 +335,8 @@ def mutate2(pop, sigma=pi/180.):
         pop[i] = random.gauss(pop[i], sigma)
     return pop
 
+    
+    
 def crossover( fu, mu ):
     # SELECT A BREAK POINT
 #    i = random.randrange(7)
@@ -302,6 +344,8 @@ def crossover( fu, mu ):
     # RETURN OFFSPRING
     return mutate2( r_[fu[:i],mu[i:]] )
 
+    
+    
 def crossover2( fu, mu ):
     # SELECT A BREAK POINT
     i = r_[[random.choice((True,False)) for i in range(6)]]
@@ -312,13 +356,14 @@ def crossover2( fu, mu ):
 
 
 
-
 def crossover_S( fu, mu ):
     # SELECT A BREAK POINT
     i = random.randrange(7)
     # RETURN OFFSPRING
     return mutate_S( r_[fu[:i],mu[i:]])#,min(abs(fu[6]),abs(mu[6]))] )
 
+    
+    
 def mutate_S(pop, number_mutations=2, sigma=pi/450.): # sigma = 0.4 degrees
     # SELECT INDICES FROM FIRST FIVE TO MUTATE
     for i in random.sample(arange(5*number_mutations)%5,number_mutations):
@@ -328,6 +373,8 @@ def mutate_S(pop, number_mutations=2, sigma=pi/450.): # sigma = 0.4 degrees
     pop[6] = abs(random.gauss(pop[6], sigma))
     return pop
 
+    
+    
 def breed_pop_S( breeders, how_many ):
     N = how_many
     retpop = zeros((N,breeders.shape[1]), float)
@@ -335,7 +382,6 @@ def breed_pop_S( breeders, how_many ):
         fu,mu = random.sample(breeders, 2)
         retpop[i] = crossover_S( fu, mu )
     return retpop.copy()
-
 
 
 
@@ -349,6 +395,7 @@ def breed_pop( breeders, how_many ):
 
     return retpop.copy()
 
+    
 
 def GA_refine_single_projection(LPA, cam, x3a, x3b, front_cam=None,
                                 iters=100, popsize=100, repeat=True,
@@ -421,6 +468,8 @@ def GA_refine_single_projection(LPA, cam, x3a, x3b, front_cam=None,
 
 def GA_refine_double_projection():
     return
+    
+    
 
 def H_from_Xx(LPA, cam, X, x ):
     '''Get a ladybug translation from a camera's view of the world points.'''
@@ -430,9 +479,6 @@ def H_from_Xx(LPA, cam, X, x ):
     r,t = r.flatten(), t.flatten()
     H = LPA.dot( LPA(cam), decode6(r_[r,t]) )
     return H
-
-
-
 
 
 
@@ -473,6 +519,8 @@ def add_genes_S(LPA, cam, Apts, Bpts, pop_size=100, scale=1.,
 
     return array(genepool)
 
+    
+    
 def get_H_list(Apts, Bpts, Nsamples=24):
     Npts = len(Apts[0])
     if Npts < Nsamples:
@@ -480,6 +528,8 @@ def get_H_list(Apts, Bpts, Nsamples=24):
     r = random.sample(range(Npts), Nsamples)
     E_mat, gdm = cv2.findFundamentalMat(Apts[:2,r].T, Bpts[:2,r].T)#, cv2.FM_8POINT)#, cv2.RANSAC,1,0.99)
     return H_from_E( E_mat )
+    
+    
 
 def H_from_E(E, RandT=False):
     '''Returns a 4x4x4 matrix of possible H translations.
@@ -507,22 +557,3 @@ def H_from_E(E, RandT=False):
     H[:,3,3] = 1
 
     return H
-
-#===============================================================================
-# MAIN METHOD AND TESTING AREA
-#===============================================================================
-#def main():
-#    """Description of main()"""
-#    az = 3.0
-#    el = 1.4
-#    print az,el
-#    x,y,z = getTxyz(az,el)
-#    print x,y,z
-#    az2,el2, r = getTazel(x,y,z)
-#    print az2,el2, r
-#
-#    w = r_[.1,.2,.3,pi/2,pi/3,1654752.132]
-#    print decode5(w)
-#
-#if __name__ == '__main__':
-#    main()

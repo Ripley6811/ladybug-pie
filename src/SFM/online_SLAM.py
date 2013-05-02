@@ -8,7 +8,7 @@ introduced in Udacity's self-driving robot course. The number of dimensions hand
 is chosen by the initial point passed to the constructor.
 
 :REQUIRES: NumPy
-:TODO: 
+:TODO:
 
 :AUTHOR: Ripley6811
 :ORGANIZATION: National Cheng Kung University, Department of Earth Sciences
@@ -57,6 +57,8 @@ class SLAM:
     Second to fourth values are the coordinates x,y,z depending on the
     number of dimensions.
     Position is a one to three value array corresponding to x,y,z.
+    Confidence value is a measure of data reliability. Lower is more reliable.
+    Must be a positive nonzero float value.
     '''
     def __init__(self, pos=np.zeros(3, float),
                  motion_confidence=1.0, measurement_confidence=1.0):
@@ -64,14 +66,14 @@ class SLAM:
 
         Initialize with a starting position of any dimension. Defaults to
         3-dimensions with starting point of zeros.
-        
+
         :type pos: iterable type with floats
         :arg  pos: Initial starting position. Sets dimensionality.
         :type motion_confidence: Float
         :arg  motion_confidence: Default motion reliability, smaller
             means more reliable
         :type measurement_confidence: Float
-        :arg  measurement_confidence: Default measurement reliability, 
+        :arg  measurement_confidence: Default measurement reliability,
             smaller means more reliable
         '''
         self.nPts = 0 # number of correspondings points / landmarks
@@ -95,7 +97,7 @@ class SLAM:
 
         self.nPos = 1  # number of positions entered into matrix
 
-        
+
 
     def add_measurement(self, pts, measurement_confidence=None):
         '''Adds measurement data to most recent motion.
@@ -104,7 +106,7 @@ class SLAM:
         New landmarks are added to end of row and column.
         ID numbers must start from zero and be managed outside of this class.
         :TODO: Manage IDs within class by mapping, this will avoid problems.
-        
+
         :type pts: List of lists or other iterable type
         :arg  pts: List of measurements. Each like [ID, x[, y[, z]]].
         :type measurement_confidence: float
@@ -113,8 +115,8 @@ class SLAM:
         self.updated = False
         P = self.nPos - 1
         LIDs = self.landmarkID
-        
-        
+
+
         if not isinstance(measurement_confidence, float):
             measurement_confidence = self.measurement_confidence
 
@@ -165,7 +167,7 @@ class SLAM:
 
         Increases the size of matrix by one. New row and column inserted
         between positional and landmark sections.
-        
+
         :type motion: Iterable type containing floating point numbers
         :arg  motion: Movement in one or more dimensions.
         :type motion_confidence: float
@@ -173,7 +175,7 @@ class SLAM:
         '''
         assert len(motion) == self.dim
         self.updated = False
-        
+
         if not isinstance(motion_confidence, float):
             motion_confidence = self.motion_confidence
 
@@ -214,7 +216,7 @@ class SLAM:
 
     def calculate(self):
         '''Solves the matrix to find optimal pts.
-        
+
         Solves the equation: Omega.I * Xi = Mu
         Maintains a list of updated positions and landmarks.
         '''
@@ -228,7 +230,7 @@ class SLAM:
 
         self.updated = True
 
-        
+
 
     def get_positions(self):
         '''Returns the updated positions for those in the matrix.
@@ -240,7 +242,7 @@ class SLAM:
 
         return np.array(self.updated_positions)
 
-        
+
 
     def get_landmarks(self):
         '''Returns the updated landmarks for those in the matrix.
@@ -251,37 +253,37 @@ class SLAM:
             self.calculate()
 
         return np.array(self.updated_landmarks)
-        
-        
-        
+
+
+
     def get_pt_hist(self):
         '''Returns the list of archived points as a NumPy array.
-        
+
         The archived points are stored in a list within the class.
         This method simply converts to an np.array.
-        
+
         :rtype: NumPy array [points, dimensions]
         '''
-        return np.array(self.pts_history) 
+        return np.array(self.pts_history)
 
 
-        
+
     def remove_pos(self, number_to_remove=1):
         '''Removes oldest positions.
 
         Points are removed from the matrix and added to a list. They
         are not updated after removal.
-        
+
         :type number_to_remove: int
         :arg  number_to_remove: Number of (oldest) points to remove/archive.
         '''
         # Most recent motion cannot be removed
         if number_to_remove >= self.nPos:
             return False
-            
+
         if not self.updated:
             self.calculate()
-            
+
         pts = self.updated_positions[:number_to_remove]
 
         for xyz in range(self.dim):

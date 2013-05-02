@@ -48,7 +48,6 @@ class FeatureMatcher:
     extractor_types = ["SIFT","SURF","ORB","BRIEF"]
 
     '''
-
     def __init__(self,
                  detector_format='Pyramid', detector_type='FAST',
                  extractor_format='', extractor_type='SIFT',
@@ -56,7 +55,8 @@ class FeatureMatcher:
         '''Initialize a cv2 FeatureDetector and DescriptorExtractor.
 
         Defaults are "PyramidFAST" for feature detecting and "SIFT" for descriptor
-        extraction. FLANN is used for matching'''
+        extraction. FLANN is used for matching.
+        '''
         detector = detector_format + detector_type
         extractor = extractor_format + extractor_type
         self.featdet = cv2.FeatureDetector_create(detector)
@@ -66,6 +66,8 @@ class FeatureMatcher:
         self.keys = []
         self.descriptors = []
         self.matches = []
+
+
 
     def __call__(self, image1, image2, threshold=0.5):
         '''Returns the corresponding key points and matching indices.
@@ -94,6 +96,7 @@ class FeatureMatcher:
         matches = flann_matcher(desc1, desc2, threshold=threshold)
 
         return keypts1, keypts2, matches
+
 
 
     def add(self, image, triplet=True, threshold=0.5):
@@ -139,6 +142,7 @@ class FeatureMatcher:
         return self.keys[-1], None
 
 
+
     def getkeys(self, image):
         '''Returns a key points and corresponding descriptors from an image
         file or ndarray.
@@ -181,9 +185,11 @@ class FeatureMatcher:
         return keyarr, desc
 
 
+
     def imread(self, fname, flags=0):
         '''Uses cv2 to load an image and convert to grayscale (flags=0).'''
         return cv2.imread(fname, flags)
+
 
 
 def extend_matchset(match1, match2):
@@ -210,6 +216,7 @@ def extend_matchset(match1, match2):
     return M[:,M[-1] != -1].copy()
 
 
+
 def flann_matcher(desc1, desc2, threshold=0.6, trees=4):
     """Returns a 2 by N ndarray of matching indices.
 
@@ -234,6 +241,7 @@ def flann_matcher(desc1, desc2, threshold=0.6, trees=4):
     return pairs[mask].astype(int).T
 
 
+
 def point_array(keypts1, keypts2, matches):
     '''Process the matching key points into a single array.
 
@@ -248,6 +256,7 @@ def point_array(keypts1, keypts2, matches):
     return array(points)
 
 
+
 def plot_flow(keypts1, keypts2, matches):
     '''Accessory method to plot point correspondences using matplotlib.pyplot.'''
     # Plot results
@@ -258,6 +267,7 @@ def plot_flow(keypts1, keypts2, matches):
         plt.plot([x1,x2],[-y1,-y2],'k')
     plt.axis('equal')
     plt.show()
+
 
 
 def test_vector_flow(a, b, c, max_angle=pi/32):
