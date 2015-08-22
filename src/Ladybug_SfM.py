@@ -16,13 +16,13 @@
 
 :AUTHOR: Ripley6811
 :ORGANIZATION: National Cheng Kung University, Department of Earth Sciences
-:CONTACT: python@boun.cr
+:CONTACT: jwj@boun.cr
 """
 #===============================================================================
 # PROGRAM METADATA
 #===============================================================================
 __author__ = 'Ripley6811'
-__contact__ = 'python@boun.cr'
+__contact__ = 'jwj@boun.cr'
 __copyright__ = ''
 __license__ = ''
 __date__ = 'Sat Aug 04 21:45:58 2012'
