@@ -19,7 +19,7 @@ Errors returned from API are changed to raised warnings and return strings.
 
 :AUTHOR: Ripley6811
 :ORGANIZATION: National Cheng Kung University, Department of Earth Sciences
-:CONTACT: python@boun.cr
+:CONTACT: jwj@boun.cr
 :SINCE: Tue May 08 09:17:43 2012
 :TODO: ...
 """
@@ -27,7 +27,7 @@ Errors returned from API are changed to raised warnings and return strings.
 # PROGRAM METADATA
 #===============================================================================
 __author__ = 'Ripley6811'
-__contact__ = 'python@boun.cr'
+__contact__ = 'jwj@boun.cr'
 __copyright__ = ''
 __license__ = ''
 __date__ = 'Tue May 08 09:17:43 2012'
