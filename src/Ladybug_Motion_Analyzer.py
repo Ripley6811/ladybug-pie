@@ -23,7 +23,7 @@ positions. Uses SFM and SLAM to improve the recorded GPS data.
 
 :AUTHOR: Ripley6811
 :ORGANIZATION: National Cheng Kung University, Department of Earth Sciences
-:CONTACT: python@boun.cr
+:CONTACT: jwj@boun.cr
 :SINCE: Tue Apr 30 12:01:05 2013
 :VERSION: 0.1
 """
@@ -31,7 +31,7 @@ positions. Uses SFM and SLAM to improve the recorded GPS data.
 # PROGRAM METADATA
 #===============================================================================
 __author__ = 'Ripley6811'
-__contact__ = 'python@boun.cr'
+__contact__ = 'jwj@boun.cr'
 __copyright__ = ''
 __license__ = ''
 __date__ = 'Tue Apr 30 12:01:05 2013'
