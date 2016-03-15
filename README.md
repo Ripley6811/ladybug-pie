@@ -17,7 +17,6 @@ Only the methods that handle pre-recorded *.pgr files have been wrapped. Methods
 
     Main program that sets up the GUI and event handling.
     
-    ![alt tag](https://dl.dropboxusercontent.com/u/49722688/images/optic_flow.png)
 
 ***
 Ladybug package
@@ -52,3 +51,5 @@ SFM package
     Changed to make it easy to add positions and measurements. 'Online' SLAM is optional; the removal of old positions is done with a method call.
 
 
+
+    ![alt tag](https://dl.dropboxusercontent.com/u/49722688/images/optic_flow.png)
