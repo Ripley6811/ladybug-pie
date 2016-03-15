@@ -16,6 +16,8 @@ Only the methods that handle pre-recorded *.pgr files have been wrapped. Methods
 * `ladybug3D_app` class
 
     Main program that sets up the GUI and event handling.
+    
+    ![alt tag](https://dl.dropboxusercontent.com/u/49722688/images/optic_flow.png)
 
 ***
 Ladybug package
